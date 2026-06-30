@@ -3,8 +3,7 @@ from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 import os
 load_dotenv()
-table_name = input("What is your table's name? ")
-def run_load(table_name):
+def run_load():
 
     db_path = f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
     try:
@@ -16,12 +15,12 @@ def run_load(table_name):
         df = pd.read_csv(csv_path)
         df.columns = df.columns.str.replace(' ', '_').str.lower()
         with engine.begin() as connection:
-            print(f"Loading data into the {table_name} table...")
-            df.to_sql(table_name, con=connection, if_exists='replace', index=False)
+            print(f"Loading data into the raw_customers table...")
+            df.to_sql('raw_customers', con=connection, if_exists='replace', index=False)
             print("Commit executed!")
     except Exception as e:
         print(f"An error has occured: {e}")
     finally:
         engine.dispose()
 if __name__ == "__main__":
-    run_load(table_name)
+    run_load()

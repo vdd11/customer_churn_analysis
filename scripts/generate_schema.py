@@ -11,4 +11,4 @@ def generate_schema(csv, name):
         c.append(f"{col} {sqltype}")
     sql = f"CREATE TABLE {name} (\n" + ",\n".join(c) + "\n);"
     return sql
-print(generate_schema('csv_files/telco_churn.csv', 'customers'))
+print(generate_schema('csv_files/telco_churn.csv', 'raw_customers'))

@@ -1,4 +1,6 @@
-CREATE TABLE customers (
+DROP TABLE IF EXISTS dim_customer CASCADE;
+
+CREATE TABLE raw_customers (
 customerID VARCHAR(255),
 gender VARCHAR(255),
 SeniorCitizen INTEGER,
@@ -22,5 +24,23 @@ TotalCharges VARCHAR(255),
 Churn VARCHAR(255)
 );
 
---SELECT *
---FROM customers
+DROP TABLE IF EXISTS fact_churn CASCADE;
+DROP TABLE IF EXISTS dim_customer CASCADE;
+
+CREATE TABLE dim_customer (
+    customer_sk SERIAL PRIMARY KEY,
+    customer_bk VARCHAR(50) UNIQUE,
+    gender VARCHAR(10),
+    senior_citizen INTEGER,
+    partner VARCHAR(10),
+    dependents VARCHAR(10)
+);
+
+CREATE TABLE fact_churn (
+    churn_sk SERIAL PRIMARY KEY,
+    customer_sk INTEGER REFERENCES dim_customer(customer_sk),
+    tenure INTEGER,
+    monthly_charges DECIMAL(10, 2),
+    total_charges DECIMAL(10, 2),
+    is_churned BOOLEAN
+);

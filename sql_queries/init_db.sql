@@ -1,4 +1,3 @@
-DROP TABLE IF EXISTS dim_customer CASCADE;
 
 CREATE TABLE raw_customers (
 customerID VARCHAR(255),

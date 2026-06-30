@@ -14,6 +14,7 @@ def run_load():
         print(f"Reading file from {csv_path}...")
         df = pd.read_csv(csv_path)
         df.columns = df.columns.str.replace(' ', '_').str.lower()
+        df['totalcharges'] = pd.to_numeric(df['totalcharges'], errors = 'coerce')
         with engine.begin() as connection:
             print(f"Loading data into the raw_customers table...")
             df.to_sql('raw_customers', con=connection, if_exists='replace', index=False)

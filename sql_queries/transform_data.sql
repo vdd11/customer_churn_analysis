@@ -9,7 +9,10 @@ SELECT
     d.customer_sk, 
     s.tenure, 
     s.monthlycharges, 
-    s.totalcharges, 
+    COALESCE(s.totalcharges, 0.0)::NUMERIC, 
     (s.churn = 'Yes') 
 FROM raw_customers s
 JOIN dim_customer d ON s.customerid = d.customer_bk;
+
+
+

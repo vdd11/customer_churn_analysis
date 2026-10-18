@@ -8,7 +8,7 @@
 
 ## Dataset
 
-The project uses the public Telco Customer Churn dataset (7,043 customers, one row each, with a churn flag). The CSV is **not included in this repo**: download it yourself and save it as `csv_files/telco_churn.csv` (the folder is git-ignored).
+The project uses the public Telco Customer Churn dataset (7,043 customers, one row each, with a churn flag). The CSV is **not included in this repo**: download it yourself (for example the public [IBM sample](https://github.com/IBM/telco-customer-churn-on-icp4d/tree/master/data)) and save it as `csv_files/telco_churn.csv` (the folder is git-ignored). The numbers below were checked against that IBM sample (7,043 rows).
 
 ## Pipeline
 
@@ -26,7 +26,13 @@ From the EDA notebook:
 - **Senior citizens churn far more:** 41.7% vs. 23.6% for non-seniors.
 - **Customers without a partner churn more:** 33.0% vs. 19.7% with a partner.
 - **Customers without dependents churn more:** 31.3% vs. 15.5% with dependents.
-- **Churn by tenure bucket:** [ADD: run the CTE query in `sql_queries/analysis.sql` against the loaded data and paste the churn rate for each bucket (0 to 6 months, 6 to 24 months, 2+ years).]
+- **Churn falls sharply with tenure:** 54.3% of customers in their first 6 months churned, versus 32.3% at 6 to 24 months and 14.3% at 2+ years (from the CTE query in `sql_queries/analysis.sql`).
+
+| Tenure bucket | Customers | Churned | Churn rate |
+|---|---|---|---|
+| 0 to 6 months | 1,371 | 744 | 54.27% |
+| 6 to 24 months | 1,745 | 564 | 32.32% |
+| 2+ years | 3,927 | 561 | 14.29% |
 
 ![Tenure distribution by churn status](docs/tenure_distribution_by_churn.png)
 
@@ -34,16 +40,22 @@ From the EDA notebook:
 
 A random forest (100 trees, `class_weight='balanced'`) on an 80/20 split (1,409 test customers, `random_state=42`):
 
-| Model | Features | Accuracy | Churn precision | Churn recall | Churn F1 |
-|---|---|---|---|---|---|
-| Random forest | 7 | 0.75 | 0.53 | 0.61 | 0.57 |
-| Random forest (pruned) | 3 (`total_charges`, `monthly_charges`, `tenure`) | 0.74 | 0.51 | 0.62 | 0.56 |
+| Model | Features | Accuracy | Churn precision | Churn recall | Churn F1 | ROC-AUC |
+|---|---|---|---|---|---|---|
+| Random forest | 7 | 0.75 | 0.52 | 0.58 | 0.55 | 0.792 |
+| Random forest (pruned) | 3 (`total_charges`, `monthly_charges`, `tenure`) | 0.75 | 0.53 | 0.60 | 0.56 | 0.791 |
 
-- Grid search on the pruned model (5-fold CV, scored on F1) picked `max_depth=10`, `min_samples_split=10`, `n_estimators=50`, with a best CV F1 of 0.587.
-- In the full model, `total_charges` (0.33), `monthly_charges` (0.30) and `tenure` (0.28) carry almost all of the importance; the four demographic dummies are about 0.02 each.
-- **ROC-AUC:** [TODO: re-run `notebooks/02_model_training.ipynb` with the dataset and record the ROC-AUC printed by the new ROC cell.]
+- The pruned model performs the same as the full model, so the four demographic columns add almost nothing to the prediction.
+- Grid search on the pruned model (5-fold CV, scored on F1) picked `max_depth=10`, `min_samples_split=2`, `n_estimators=50`, with a best CV F1 of 0.595.
+- In the full model, `monthly_charges` (0.34), `total_charges` (0.31) and `tenure` (0.27) carry almost all of the importance; the four demographic dummies are about 0.02 each.
 
-> **Note:** the numbers above are from the original notebook run, before two fixes: the notebook cast every column to integers, which truncated the decimals in `monthly_charges` and `total_charges`, and the SHAP cell paired the 7-feature model with 3-feature data. Both are fixed in the code, but the metrics need to be re-run with the dataset and updated here.
+![ROC curves for the full and pruned models](docs/roc_curve.png)
+
+The SHAP summary for the full model shows the direction of each feature's effect: short tenure and high monthly charges push predictions toward churn, while having dependents pushes them away.
+
+![SHAP summary plot for the full model](docs/shap_summary.png)
+
+> **How these were produced:** both notebooks were run end to end on the IBM sample. PostgreSQL was not available, so the load and star-schema steps were replicated in pandas and SQLite using the same logic as `scripts/load_data.py` and `sql_queries/transform_data.sql`, and the CTE query was run on that copy. Row order in the SQLite copy can differ from a Postgres load, which changes the train/test split, so exact model figures may differ slightly from a Postgres run.
 
 ## Limitations
 
@@ -52,6 +64,7 @@ A random forest (100 trees, `class_weight='balanced'`) on an 80/20 split (1,409 
 - Feature importance shows what the model relies on, not what causes churn.
 - Results come from a single train/test split; there is no cross-validated estimate for the final model.
 - Churn precision is about 0.5, so roughly half of the customers flagged would not actually have churned.
+- ROC-AUC is about 0.79: the model ranks churners above non-churners reasonably well, but it is not a strong classifier.
 
 ## Run it
 

@@ -6,7 +6,7 @@ COUNT(*) as count,
 ROUND(100.0 * COUNT(*)/SUM(COUNT(*)) OVER(), 2) as percentage
 
 FROM fact_churn
-GROUP BY is_churned
+GROUP BY is_churned;
 
 
 --tenure buckets
@@ -32,7 +32,7 @@ SELECT
 FROM fact_churn
 JOIN dim_customer ON
     fact_churn.customer_sk = dim_customer.customer_sk
-GROUP BY dim_customer.senior_citizen
+GROUP BY dim_customer.senior_citizen;
 
 
 --SELECT COUNT(*) FROM fact_churn WHERE total_charges IS NULL;
@@ -45,3 +45,30 @@ GROUP BY dim_customer.senior_citizen
 --SELECT f.*, d.gender, d.senior_citizen, d.partner 
 --FROM fact_churn f
 --JOIN dim_customer d ON f.customer_sk = d.customer_sk
+
+
+--churn rate by tenure bucket (CTE)
+
+WITH tenure_buckets AS (
+    SELECT
+        CASE
+            WHEN tenure < 6 THEN '0 to 6 Months'
+            WHEN tenure < 24 THEN '6 to 24 Months'
+            ELSE '2+ Years'
+        END AS tenure_bucket,
+        CASE
+            WHEN tenure < 6 THEN 1
+            WHEN tenure < 24 THEN 2
+            ELSE 3
+        END AS bucket_order,
+        is_churned
+    FROM fact_churn
+)
+SELECT
+    tenure_bucket,
+    COUNT(*) AS total_customers,
+    SUM(CASE WHEN is_churned THEN 1 ELSE 0 END) AS churned_customers,
+    ROUND(100.0 * AVG(is_churned::int), 2) AS churn_rate_pct
+FROM tenure_buckets
+GROUP BY tenure_bucket, bucket_order
+ORDER BY bucket_order;

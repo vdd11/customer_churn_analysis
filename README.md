@@ -102,3 +102,7 @@ customer_churn_analysis/
 ├── .env.example
 └── requirements.txt
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
